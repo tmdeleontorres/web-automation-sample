@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio — AI-Assisted Automation Testing</title>
+<style>
+  :root{
+    --bg:#0a0f1e; --bg2:#0f1730; --card:#141d38; --card2:#18234508;
+    --line:rgba(255,255,255,.09); --text:#e8edf9; --muted:#9fb0d0;
+    --a1:#22d3ee; --a2:#8b5cf6; --ok:#34d399; --warn:#fbbf24; --bad:#f87171;
+    --mono:"Cascadia Code",Consolas,"Courier New",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:
+      radial-gradient(900px 480px at 85% -10%, rgba(139,92,246,.20), transparent 60%),
+      radial-gradient(760px 420px at 5% 0%, rgba(34,211,238,.14), transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font:16px/1.65 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+  section{padding:64px 0;border-top:1px solid var(--line)}
+  section:first-of-type{border-top:none}
+  h2{font-size:clamp(22px,3vw,30px);letter-spacing:-.02em;margin-bottom:6px}
+  h2 .grad,.grad{background:linear-gradient(92deg,var(--a1),var(--a2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{color:var(--muted);max-width:70ch;margin-bottom:28px}
+  h3{font-size:17px;margin:0 0 4px}
+  p{color:var(--muted)}
+  strong{color:var(--text)}
+  ul{list-style:none}
+  li{position:relative;padding-left:20px;margin:7px 0;color:var(--muted)}
+  li::before{content:"▸";position:absolute;left:0;color:var(--a1)}
+  code{font-family:var(--mono);font-size:.86em;background:rgba(34,211,238,.10);color:#a5f3fc;padding:1px 6px;border-radius:5px}
+
+  /* ---------- toolbar ---------- */
+  .bar{position:fixed;top:14px;right:14px;z-index:99;display:flex;gap:8px;background:rgba(15,23,48,.82);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:12px;padding:7px}
+  .bar button{font:600 12.5px/1 "Segoe UI",sans-serif;color:var(--text);background:transparent;border:1px solid var(--line);border-radius:8px;padding:8px 11px;cursor:pointer;transition:.15s}
+  .bar button:hover{border-color:var(--a1);color:var(--a1)}
+  .bar button.on{background:linear-gradient(92deg,var(--a1),var(--a2));border-color:transparent;color:#06121f}
+  .bar .sep{width:1px;background:var(--line);margin:2px 1px}
+  body.editing .e{outline:1px dashed rgba(34,211,238,.45);outline-offset:3px;border-radius:4px}
+  body.editing .e:hover{outline-color:var(--a1);background:rgba(34,211,238,.06)}
+  .edit-hint{display:none;position:fixed;bottom:16px;right:16px;z-index:99;background:rgba(15,23,48,.9);border:1px solid var(--a1);color:var(--a1);font-size:12.5px;padding:8px 13px;border-radius:9px}
+  body.editing .edit-hint{display:block}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translate(-50%,80px);z-index:99;background:#0c1330;border:1px solid var(--a2);color:var(--text);padding:10px 18px;border-radius:10px;opacity:0;transition:.28s;font-size:14px}
+  .toast.show{transform:translate(-50%,0);opacity:1}
+
+  /* ---------- hero ---------- */
+  .hero{padding:110px 0 74px;text-align:center}
+  .badge{display:inline-block;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--a1);border:1px solid rgba(34,211,238,.35);border-radius:999px;padding:6px 15px;margin-bottom:20px}
+  .hero h1{font-size:clamp(30px,5.4vw,52px);line-height:1.15;letter-spacing:-.03em;margin-bottom:14px}
+  .hero .pitch{font-size:clamp(16px,2vw,19px);color:var(--muted);max-width:74ch;margin:0 auto 26px}
+  .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .cta a{display:inline-block;text-decoration:none;font-weight:600;font-size:14.5px;padding:11px 22px;border-radius:10px;border:1px solid var(--line);color:var(--text);transition:.15s}
+  .cta a.primary{background:linear-gradient(92deg,var(--a1),var(--a2));color:#06121f;border-color:transparent}
+  .cta a:hover{transform:translateY(-1px);border-color:var(--a1)}
+
+  /* ---------- kpis ---------- */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:14px;margin-top:38px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 16px;text-align:center}
+  .kpi b{display:block;font-size:clamp(24px,3.4vw,32px);letter-spacing:-.02em;background:linear-gradient(92deg,var(--a1),var(--a2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .kpi span{font-size:12.5px;color:var(--muted)}
+
+  /* ---------- grids & cards ---------- */
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+  .g3{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .card p{font-size:14.5px}
+  .step .no{font:700 13px var(--mono);color:var(--a1);letter-spacing:.1em}
+  .role{display:flex;gap:8px;align-items:flex-start;font-size:14px;margin-top:10px}
+  .role .tag{flex:0 0 auto;font:700 10.5px/1.9 var(--mono);letter-spacing:.08em;border-radius:6px;padding:2px 8px;margin-top:2px}
+  .tag.ai{background:rgba(34,211,238,.14);color:var(--a1)}
+  .tag.you{background:rgba(139,92,246,.16);color:#c4b5fd}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 6px}
+  .chip{font:600 12.5px/1 var(--mono);color:#cbd5e1;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:999px;padding:7px 13px}
+  pre{font-family:var(--mono);font-size:12.6px;line-height:1.62;color:#bcd0f0}
+  pre.tree{background:#0b1226;border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow-x:auto;margin-top:14px}
+
+  /* ---------- case studies ---------- */
+  .case{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px}
+  .case h3{font-size:16.5px;margin-bottom:12px}
+  .kv{display:grid;grid-template-columns:118px 1fr;gap:6px 12px;font-size:14.2px}
+  .kv dt{font:700 10.8px/1.7 var(--mono);letter-spacing:.07em;text-transform:uppercase;padding-top:2px}
+  .kv dd{color:var(--muted)}
+  .d-sym dt{color:var(--warn)} .d-ai dt{color:var(--a1)} .d-evi dt{color:#7dd3fc}
+  .d-ver dt{color:#c4b5fd} .d-fix dt{color:var(--ok)} .d-les dt{color:#fda4af}
+  .verdict{display:inline-block;font:700 11.5px var(--mono);letter-spacing:.06em;border-radius:6px;padding:3px 9px;margin-right:7px}
+  .v-bug{background:rgba(248,113,113,.14);color:var(--bad)}
+  .v-test{background:rgba(251,191,36,.13);color:var(--warn)}
+  .v-real{background:rgba(52,211,153,.14);color:var(--ok)}
+
+  /* ---------- table ---------- */
+  table{width:100%;border-collapse:collapse;font-size:14.2px;margin-top:6px}
+  th,td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--line)}
+  th{font:700 11.5px/1.6 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--a1)}
+  td{color:var(--muted)} td:first-child{color:var(--text)}
+  tr:last-child td{border-bottom:none}
+  .asof{font-family:var(--mono);font-size:12px;color:#7d8db0}
+
+  /* ---------- guardrails ---------- */
+  .guard{display:flex;gap:12px;align-items:flex-start}
+  .guard .ico{flex:0 0 auto;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:15px;background:rgba(139,92,246,.16)}
+  .guard p{font-size:14.3px}
+
+  footer{border-top:1px solid var(--line);padding:46px 0 60px;text-align:center}
+  footer .links{display:flex;gap:22px;justify-content:center;flex-wrap:wrap;margin:14px 0 10px;font-size:14.5px}
+  footer a{color:var(--a1);text-decoration:none}
+  footer a:hover{text-decoration:underline}
+  .fine{font-size:12.5px;color:#6f7f9f}
+
+  @media (max-width:640px){
+    .bar{top:auto;bottom:12px;right:12px;left:12px;justify-content:center;flex-wrap:wrap}
+    .kv{grid-template-columns:1fr}
+    section{padding:48px 0}
+  }
+  @media print{
+    body{background:#fff;color:#111}
+    .bar,.edit-hint,.toast,.cta{display:none!important}
+    section{padding:26px 0;border-color:#ddd;break-inside:avoid}
+    h2,h3,th,td:first-child,li strong,strong{color:#111}
+    h2 .grad,.grad,.kpi b{background:none;-webkit-text-fill-color:#111;color:#111}
+    p,li,td,.sub,.kv dd,.kpi span{color:#444}
+    .card,.kpi,.case,pre.tree{background:#fafafa;border:1px solid #ddd}
+    code{background:#eee;color:#333}
+    pre.tree{color:#333}
+    .role .tag,.chip,.badge{border:1px solid #ccc;background:#f3f3f3;color:#333}
+    .d-sym dt,.d-ai dt,.d-evi dt,.d-ver dt,.d-fix dt,.d-les dt{color:#555}
+  }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <button id="btn-edit" title="Toggle in-browser editing">✎ Edit</button>
+  <div class="sep"></div>
+  <button id="btn-html" title="Download this page with your edits baked in">⬇ HTML</button>
+  <button id="btn-json" title="Export content as JSON backup">⬇ JSON</button>
+  <button id="btn-import" title="Restore a JSON backup">⬆ Import</button>
+  <button id="btn-print" title="Print / Save as PDF">⎙ Print</button>
+  <button id="btn-reset" title="Restore original template content">↺ Reset</button>
+  <input type="file" id="file-in" accept=".json" hidden>
+</div>
+<div class="edit-hint">Edit mode — click any outlined text to change it. Autosaved in this browser.</div>
+<div class="toast" id="toast"></div>
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="top">
+  <div class="wrap">
+    <span class="badge e">Automation QA · AI-in-the-loop</span>
+    <h1><span class="e">Your Name</span> — <span class="grad e">AI-Assisted Test Automation</span></h1>
+    <p class="pitch e">I design, build and triage end-to-end test automation with AI in the loop —
+      where the model drafts fast and live-DOM evidence decides what ships.
+      Python · Playwright · Page Object Model · 135 traceable test cases.</p>
+    <div class="cta">
+      <a class="primary" href="#project">View project</a>
+      <a href="#workflow">My AI workflow</a>
+      <a href="#contact">Contact</a>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><b class="e">135</b><span class="e">test cases automated</span></div>
+      <div class="kpi"><b class="e">16 / 16</b><span class="e">app modules covered</span></div>
+      <div class="kpi"><b class="e">99 ✓</b><span class="e">latest full-suite run</span></div>
+      <div class="kpi"><b class="e">3</b><span class="e">real defects surfaced</span></div>
+      <div class="kpi"><b class="e">1.15M</b><span class="e">table rows handled</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WORKFLOW ============ -->
+<section id="workflow">
+  <div class="wrap">
+    <h2>The <span class="grad">AI-assisted workflow</span></h2>
+    <p class="sub e">A repeatable six-step loop that turns requirement documents into a traceable
+      suite. AI drafts every step — a human verifies every step. Never the other way around.</p>
+    <div class="grid g3">
+      <div class="card step">
+        <span class="no">01 · INGEST</span>
+        <h3>Documents → cases</h3>
+        <div class="role"><span class="tag ai">AI</span><p class="e">Drafts structured test cases with IDs from requirements / a CSV master sheet.</p></div>
+        <div class="role"><span class="tag you">YOU</span><p class="e">Reviews coverage, adds domain-only knowledge, enforces 1:1 traceability.</p></div>
+      </div>
+      <div class="card step">
+        <span class="no">02 · DESIGN</span>
+        <h3>Framework skeleton</h3>
+        <div class="role"><span class="tag ai">AI</span><p class="e">Proposes folder layout, config, fixtures and page-object boundaries.</p></div>
+        <div class="role"><span class="tag you">YOU</span><p class="e">Owns architecture, naming, markers and secret handling.</p></div>
+      </div>
+      <div class="card step">
+        <span class="no">03 · GENERATE</span>
+        <h3>Code from cases</h3>
+        <div class="role"><span class="tag ai">AI</span><p class="e">Writes page-object methods and test bodies from the drafted cases.</p></div>
+        <div class="role"><span class="tag you">YOU</span><p class="e">Reviews logic, applies markers (smoke · negative · boundary…), kills over-engineering.</p></div>
+      </div>
+      <div class="card step">
+        <span class="no">04 · VERIFY</span>
+        <h3>Selector pass</h3>
+        <div class="role"><span class="tag ai">AI</span><p class="e">Infers selectors from documentation — plausible, not trusted.</p></div>
+        <div class="role"><span class="tag you">YOU</span><p class="e">Re-reads every locator from the live DOM with probe scripts; only verified constants enter the code.</p></div>
+      </div>
+      <div class="card step">
+        <span class="no">05 · TRIAGE</span>
+        <h3>Failure analysis</h3>
+        <div class="role"><span class="tag ai">AI</span><p class="e">Reads traces and logs, proposes root-cause hypotheses and drafts probe scripts.</p></div>
+        <div class="role"><span class="tag you">YOU</span><p class="e">Runs the probes, takes measurements, decides: app bug · flake · test bug.</p></div>
+      </div>
+      <div class="card step">
+        <span class="no">06 · REPORT</span>
+        <h3>Close the loop</h3>
+        <div class="role"><span class="tag ai">AI</span><p class="e">Summarises runs and updates the evidence tables in the docs.</p></div>
+        <div class="role"><span class="tag you">YOU</span><p class="e">Signs off, files defects, decides what stays red on purpose.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PROJECT ============ -->
+<section id="project">
+  <div class="wrap">
+    <h2>Project spotlight — <span class="grad">RFM Automation</span></h2>
+    <p class="sub e">End-to-end test automation for the <strong>RFID Master Generator</strong> web app:
+      16 application modules, 135 test cases, every test name carrying the TC-ID of its
+      master-sheet row — so a report line maps 1:1 to a spreadsheet line.</p>
+    <div class="chips">
+      <span class="chip e">Python</span><span class="chip e">Playwright</span>
+      <span class="chip e">pytest</span><span class="chip e">Page Object Model</span>
+      <span class="chip e">markers</span><span class="chip e">VS Code</span>
+      <span class="chip e">HTML live test sheet</span><span class="chip e">DOM probe scripts</span>
+    </div>
+    <div class="grid g2" style="margin-top:18px">
+      <div class="card">
+        <h3>What I built</h3>
+        <ul>
+          <li class="e"><strong>One file per module</strong> — page object + test file for all 16 modules; a future app change is fixed by editing one file's constants.</li>
+          <li class="e"><strong>Zero hardcoded selectors in tests</strong> — tests only call page-object methods.</li>
+          <li class="e"><strong>RunRecorder bridge</strong> — after <em>every</em> test the recorder rewrites <code>results.js</code> + <code>test_results.json</code>, so the HTML sheet shows live Pass / Fail / Blocked while the run is still going.</li>
+          <li class="e"><strong>Skip-don't-fail policy</strong> — missing data yields Blocked, not a false red, so the suite runs against any environment.</li>
+          <li class="e"><strong>Probe toolkit</strong> — inspection scripts that re-capture URLs, headings, columns and modal flows from the live DOM whenever the app changes.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Structure</h3>
+<pre class="tree e">RFM_Python_Automation/
+├── config/settings.py      base URL, credentials, limits
+├── pages/                  ← POM, one file per module (14)
+│   ├── base_page.py        locate / navigate / screenshot
+│   └── list_page.py        shared filter + table + export
+├── tests/                  ← one test file per module (16)
+│   ├── conftest.py         guest_page / auth_page fixtures
+│   └── test_16_rfid_import.py
+├── utils/
+│   ├── results_report.py   RunRecorder → HTML sheet bridge
+│   └── helpers.py          CSV reader, EPC builder, batches
+├── scripts/                selector-pass & triage probes
+└── artifacts/              screenshots + probe evidence</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CASE STUDIES ============ -->
+<section id="cases">
+  <div class="wrap">
+    <h2>Case studies — <span class="grad">where AI was wrong</span></h2>
+    <p class="sub e">Formula: symptom → AI hypothesis → evidence → verdict. The measurements decide,
+      not the model's most confident sentence.</p>
+    <div class="grid" style="gap:16px">
+
+      <div class="case">
+        <h3>01 · “The four-second search”</h3>
+        <dl class="kv">
+          <dt class="d-sym">Symptom</dt><dd class="e">Quick-search in a list “sometimes doesn't filter” — roughly a third of runs, seemingly random.</dd>
+          <dt class="d-ai">AI says</dt><dd class="e">“The click handler isn't firing — dispatch a synthetic <code>keyup</code> event.”</dd>
+          <dt class="d-evi">Evidence</dt><dd class="e">Probes with a 2.0 s wait saw the filter land; the same probe at 1.5 s did not. Measured DataTables client-side latency: <strong>~1.6 s</strong> on a 2-row table, <strong>~4.0 s</strong> on a <strong>1,150,551-row</strong> table. No ajax — the filter is pure client-side JS.</dd>
+          <dt class="d-ver">Verdict</dt><dd class="e"><span class="verdict v-test">TEST BUG</span>A fixed 500 ms sleep against a genuinely slow widget.</dd>
+          <dt class="d-fix">Fix</dt><dd class="e"><code>table_search()</code> now polls the DataTables info line + row count every 250 ms (max 15 s) instead of sleeping.</dd>
+          <dt class="d-les">Lesson</dt><dd class="e">A “flaky” test is usually a measurement problem. AI's hypothesis was plausible and wrong; the numbers were neither.</dd>
+        </dl>
+      </div>
+
+      <div class="case">
+        <h3>02 · “The wrong column”</h3>
+        <dl class="kv">
+          <dt class="d-sym">Symptom</dt><dd class="e">One rewrite test kept asserting against a literal <code>-</code> value.</dd>
+          <dt class="d-ai">AI says</dt><dd class="e">“The API returned null — add a retry.”</dd>
+          <dt class="d-evi">Evidence</dt><dd class="e"><code>header_index("RFID")</code> substring-matched <strong>“MOTHER RFID”</strong>, an earlier column in the header row. The test was reading the right row of the wrong column.</dd>
+          <dt class="d-ver">Verdict</dt><dd class="e"><span class="verdict v-test">TEST BUG</span>Locator precision, not data.</dd>
+          <dt class="d-fix">Fix</dt><dd class="e">Two-pass header matching (exact text first, substring as fallback), plus table scoping that excludes modal tables and the DataTables empty-state row — which the app <em>relabels</em>, so text-based exclusion had silently stopped matching.</dd>
+          <dt class="d-les">Lesson</dt><dd class="e">Assertions are only as good as the locator <em>before</em> them.</dd>
+        </dl>
+      </div>
+
+      <div class="case">
+        <h3>03 · “The AI found a real production bug”</h3>
+        <dl class="kv">
+          <dt class="d-sym">Symptom</dt><dd class="e">Two operator-management tests could never pass, on any machine.</dd>
+          <dt class="d-ai">AI says</dt><dd class="e">“Flaky modal timing — increase the timeout.”</dd>
+          <dt class="d-evi">Evidence</dt><dd class="e">Probe of the exact click shows <code>pageerror: primedRef is not defined</code>; the modal never receives its open class, and <strong>no network request fires at all</strong>.</dd>
+          <dt class="d-ver">Verdict</dt><dd class="e"><span class="verdict v-real">REAL DEFECT</span>The Production Lines feature is broken in the app.</dd>
+          <dt class="d-fix">Fix</dt><dd class="e">Tests kept <strong>red on purpose</strong> as documented intended failures (TC-OP-008 / TC-OP-009), with the evidence archived next to them.</dd>
+          <dt class="d-les">Lesson</dt><dd class="e">Automation that goes green by skipping is automation that lies. Sometimes the best portfolio piece is a test that refuses to pass.</dd>
+        </dl>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============ METRICS ============ -->
+<section id="metrics">
+  <div class="wrap">
+    <h2>Metrics &amp; <span class="grad">results</span></h2>
+    <p class="sub e">Refresh this table after every full run — a stale “as of” date quietly discredits everything above it.</p>
+    <div class="card" style="padding:6px 4px">
+      <table>
+        <thead><tr><th>Metric</th><th>Value</th><th>As of</th></tr></thead>
+        <tbody>
+          <tr><td class="e">Test cases automated</td><td class="e">135 (134-case master sheet + 1 added through automation)</td><td class="asof e">2026-10-19</td></tr>
+          <tr><td class="e">Full-suite run</td><td class="e">99 passed · 6 failed (documented defects) · 13 blocked · 1 xfail · 1 xpass</td><td class="asof e">2026-10-19</td></tr>
+          <tr><td class="e">Modules covered</td><td class="e">16 / 16 — auth, generator, 8 list modules, users, operators, deleted, rewrite, mismatch, import</td><td class="asof e">2026-10-19</td></tr>
+          <tr><td class="e">Known defects surfaced</td><td class="e">3 — TC-GEN-008 (documented) · TC-OP-008/009 (<code>primedRef is not defined</code>)</td><td class="asof e">2026-10-19</td></tr>
+          <tr><td class="e">Largest dataset handled</td><td class="e">1,150,551 client-side table rows (≈4 s filter latency, absorbed by polling)</td><td class="asof e">2026-10-19</td></tr>
+          <tr><td class="e">Traceability</td><td class="e">1:1 — test name ↔ TC-ID ↔ master sheet ↔ live HTML dashboard</td><td class="asof e">always</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GUARDRAILS ============ -->
+<section id="guardrails">
+  <div class="wrap">
+    <h2>AI <span class="grad">guardrails</span></h2>
+    <p class="sub e">The part that earns trust: what I refuse to let the model decide.</p>
+    <div class="grid g2">
+      <div class="card guard"><span class="ico">🛟</span><p class="e"><strong>AI output is a draft, not a fact.</strong> Every selector and flow is re-verified against the live DOM by scripts I run, with the raw output archived as artifacts.</p></div>
+      <div class="card guard"><span class="ico">🔐</span><p class="e"><strong>No secrets in prompts.</strong> Credentials live in environment variables; the model sees redacted config at most.</p></div>
+      <div class="card guard"><span class="ico">📏</span><p class="e"><strong>Measurements decide root cause.</strong> Not the model's most confident sentence — a probe, a timestamp, a row count.</p></div>
+      <div class="card guard"><span class="ico">🏗️</span><p class="e"><strong>I own the architecture.</strong> Naming, folder layout, markers, and the decision of what fails vs. what skips are human calls.</p></div>
+      <div class="card guard"><span class="ico">🟥</span><p class="e"><strong>Known-bad stays red.</strong> I never let AI “fix” a failure by weakening an assertion or adding a blanket retry.</p></div>
+      <div class="card guard"><span class="ico">🧾</span><p class="e"><strong>Evidence is written down.</strong> Every verified DOM fact lands in the README with the probe that proved it, so re-verification starts from facts, not memory.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TOOLBELT ============ -->
+<section id="toolbelt">
+  <div class="wrap">
+    <h2>Toolbelt</h2>
+    <p class="sub e">What I reach for, day to day.</p>
+    <div class="chips">
+      <span class="chip e">Python</span><span class="chip e">Playwright</span><span class="chip e">pytest</span>
+      <span class="chip e">pytest-playwright</span><span class="chip e">Page Object Model</span><span class="chip e">markers</span>
+      <span class="chip e">DataTables-aware waits</span><span class="chip e">CSV ↔ JS data sync</span>
+      <span class="chip e">DOM probe scripts</span><span class="chip e">env-var config</span>
+      <span class="chip e">HTML live test sheet</span><span class="chip e">failure screenshots</span>
+      <span class="chip e">AI pair-programming (draft → verify loop)</span><span class="chip e">VS Code</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CONTACT ============ -->
+<footer id="contact">
+  <div class="wrap">
+    <h3 class="e">Let's talk test automation</h3>
+    <div class="links">
+      <a class="e" href="#">GitHub</a>
+      <a class="e" href="#">LinkedIn</a>
+      <a class="e" href="mailto:you@example.com">you@example.com</a>
+    </div>
+    <p class="fine e">Open “Edit” (✎) to personalise this page — it autosaves in your browser; use ⬇ HTML to export a shareable copy with your edits baked in.</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var STORE = "portfolio_content_v1";
+  var PRISTINE = "portfolio_pristine_v1";
+  var LOCKED = document.body.dataset.exported === "true"; // baked export wins over local edits
+
+  /* ---- collect editable elements & give each a stable key ---- */
+  var els = [].slice.call(document.querySelectorAll(".e"));
+  els.forEach(function(el, i){
+    if(!el.dataset.key){
+      var sec = el.closest("section[id], footer[id]");
+      el.dataset.key = (sec ? sec.id : "top") + "::" + el.tagName.toLowerCase() + "::" + i;
+    }
+    el.setAttribute("spellcheck","false");
+  });
+
+  function snapshot(){
+    var o = {};
+    els.forEach(function(el){ o[el.dataset.key] = el.innerHTML; });
+    return o;
+  }
+  function apply(map){
+    if(!map) return;
+    els.forEach(function(el){
+      if(Object.prototype.hasOwnProperty.call(map, el.dataset.key)) el.innerHTML = map[el.dataset.key];
+    });
+  }
+  function ls(fn, val){
+    try{ return fn === "get" ? localStorage.getItem(val) : localStorage.setItem(fn, val); }
+    catch(e){ return null; }
+  }
+
+  /* ---- restore ---- */
+  if(!LOCKED){
+    var saved = ls("get", STORE);
+    if(saved){ try{ apply(JSON.parse(saved)); }catch(e){} }
+    if(!ls("get", PRISTINE)) ls("set", PRISTINE, JSON.stringify(snapshot()));
+  }
+
+  /* ---- autosave ---- */
+  var t = null;
+  document.addEventListener("input", function(e){
+    if(!e.target.classList || !e.target.classList.contains("e")) return;
+    clearTimeout(t);
+    t = setTimeout(function(){ ls("set", STORE, JSON.stringify(snapshot())); }, 350);
+  });
+
+  /* ---- toast ---- */
+  var toastEl = document.getElementById("toast"), tt = null;
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(tt);
+    tt = setTimeout(function(){ toastEl.classList.remove("show"); }, 2200);
+  }
+
+  function download(name, text, type){
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], {type: type}));
+    a.download = name;
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1500);
+  }
+
+  /* ---- toolbar ---- */
+  var editing = false;
+  document.getElementById("btn-edit").addEventListener("click", function(){
+    editing = !editing;
+    els.forEach(function(el){ el.contentEditable = editing ? "true" : "false"; });
+    document.body.classList.toggle("editing", editing);
+    this.classList.toggle("on", editing);
+    this.textContent = editing ? "✔ Done" : "✎ Edit";
+    if(editing) toast("Edit mode on — click any outlined text");
+  });
+
+  document.getElementById("btn-html").addEventListener("click", function(){
+    var clone = document.documentElement.cloneNode(true);
+    clone.querySelector("body").dataset.exported = "true";
+    var tb = clone.querySelector("#toast"); if(tb){ tb.textContent = ""; tb.className = "toast"; }
+    var btn = clone.querySelector("#btn-edit");
+    if(btn && btn.classList.contains("on")){ btn.classList.remove("on"); btn.textContent = "✎ Edit"; }
+    clone.querySelectorAll(".e").forEach(function(el){ el.removeAttribute("contenteditable"); });
+    download("portfolio.html", "<!DOCTYPE html>\n" + clone.outerHTML, "text/html");
+    toast("Exported portfolio.html (edits baked in)");
+  });
+
+  document.getElementById("btn-json").addEventListener("click", function(){
+    download("portfolio_backup.json", JSON.stringify(snapshot(), null, 2), "application/json");
+    toast("Exported JSON backup");
+  });
+
+  document.getElementById("btn-import").addEventListener("click", function(){
+    document.getElementById("file-in").click();
+  });
+  document.getElementById("file-in").addEventListener("change", function(){
+    var f = this.files[0]; if(!f) return;
+    var r = new FileReader();
+    r.onload = function(){
+      try{
+        apply(JSON.parse(r.result));
+        ls("set", STORE, JSON.stringify(snapshot()));
+        toast("Backup restored");
+      }catch(err){ toast("Could not read that file"); }
+    };
+    r.readAsText(f);
+    this.value = "";
+  });
+
+  document.getElementById("btn-print").addEventListener("click", function(){ window.print(); });
+
+  document.getElementById("btn-reset").addEventListener("click", function(){
+    if(!confirm("Restore the original template text? Your edits in this browser will be lost.")) return;
+    var p = ls("get", PRISTINE);
+    if(p){ apply(JSON.parse(p)); }
+    ls("set", STORE, p || "{}");
+    toast("Template restored");
+  });
+})();
+</script>
+</body>
+</html>

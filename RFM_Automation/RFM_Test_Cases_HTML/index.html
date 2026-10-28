@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RFM Test Case Manager — RFID Master Generator</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">RFM</span>
+    <div>
+      <h1>Test Case Manager</h1>
+      <p>RFID Master Generator &middot; dev.master.bwrfm.com</p>
+    </div>
+  </div>
+  <div class="top-actions">
+    <button id="btnAdd" class="btn btn-primary">+ Add Test Case</button>
+    <button id="btnImport" class="btn">Import CSV</button>
+    <button id="btnExport" class="btn">Export CSV</button>
+    <button id="btnReset" class="btn btn-danger-ghost">Reset to Original</button>
+    <input type="file" id="fileInput" accept=".csv,.txt" hidden>
+  </div>
+</header>
+
+<section class="stats" id="stats"></section>
+
+<section class="toolbar">
+  <input type="search" id="search" placeholder="Search title, steps, expected result…   ·   key:value filters:  id:TC-GEN  module:Generator  type:Negative  status:Fail">
+  <select id="fType"><option value="">All Test Types</option></select>
+  <select id="fPriority"><option value="">All Priorities</option></select>
+  <select id="fStatus"><option value="">All Statuses</option></select>
+  <button id="btnClear" class="btn btn-ghost">Clear filters</button>
+  <span class="result-count" id="resultCount"></span>
+</section>
+
+<nav class="tabs" id="tabs" aria-label="Module tabs"></nav>
+
+<main class="table-wrap">
+  <table id="tbl">
+    <thead>
+      <tr>
+        <th data-sort="TC ID">TC ID</th>
+        <th data-sort="Module">Module</th>
+        <th data-sort="Test Type">Test Type</th>
+        <th data-sort="Priority">Priority</th>
+        <th data-sort="Title">Title</th>
+        <th data-sort="Preconditions">Preconditions</th>
+        <th data-sort="Test Steps">Test Steps</th>
+        <th data-sort="Expected Result">Expected Result</th>
+        <th data-sort="Status" class="col-status">Status</th>
+        <th data-sort="Remarks">Remarks</th>
+        <th class="col-actions">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div id="empty" class="empty" hidden>No test cases match your filters.</div>
+</main>
+
+<footer class="foot">
+  <span id="footInfo"></span>
+  <span>Edits are saved automatically in this browser (localStorage). Use <b>Export CSV</b> to keep a copy.</span>
+</footer>
+
+<div class="modal-backdrop" id="backdrop" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <h2 id="modalTitle">Edit Test Case</h2>
+      <button class="x" id="btnClose" aria-label="Close">&times;</button>
+    </div>
+    <form id="tcForm">
+      <div class="grid">
+        <label>TC ID <input name="TC ID" required id="fId"></label>
+        <label>Module <input name="Module" list="moduleList" required><datalist id="moduleList"></datalist></label>
+        <label>Test Type
+          <select name="Test Type">
+            <option>Happy Path</option><option>Negative</option><option>Edge Case</option>
+            <option>Boundary</option><option>Regression</option><option>Performance</option>
+            <option>Security</option>
+          </select>
+        </label>
+        <label>Priority
+          <select name="Priority"><option>High</option><option>Medium</option><option>Low</option></select>
+        </label>
+        <label class="span2">Title <input name="Title" required></label>
+        <label class="span2">Preconditions <textarea name="Preconditions" rows="2"></textarea></label>
+        <label class="span2">Test Steps <textarea name="Test Steps" rows="4"></textarea></label>
+        <label class="span2">Expected Result <textarea name="Expected Result" rows="4"></textarea></label>
+        <label>Status
+          <select name="Status">
+            <option>Not Executed</option><option>Pass</option><option>Fail</option>
+            <option>Blocked</option><option>In Review</option>
+          </select>
+        </label>
+        <label class="span2">Remarks <textarea name="Remarks" rows="2"></textarea></label>
+      </div>
+      <div class="modal-foot">
+        <span class="hint" id="formHint"></span>
+        <button type="button" class="btn" id="btnCancel">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="data.js"></script>
+<script src="results.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

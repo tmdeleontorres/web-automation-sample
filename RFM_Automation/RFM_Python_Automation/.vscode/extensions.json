@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.debugpy",
+    "ms-playwright.playwright",
+    "ms-python.vscode-pylint",
+    "ms-vscode.test-adapter-for-pytest"
+  ]
+}

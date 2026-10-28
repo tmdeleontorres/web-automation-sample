@@ -1,0 +1,338 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>The RFM Automation Project - Explained for a Learner</title><style>
+body{font-family:"Segoe UI",Arial,sans-serif;font-size:11pt;line-height:1.6;max-width:52em;margin:2em auto;padding:0 1em;color:#1a1a1a}
+h1{font-size:20pt;border-bottom:2px solid #1f3b73;padding-bottom:6px}
+h2{font-size:15pt;color:#1f3b73;margin-top:1.4em;border-bottom:1px solid #ccc;padding-bottom:3px}
+code{font-family:Consolas,monospace;font-size:9.5pt;background:#eef1f6;padding:1px 4px;border-radius:3px}
+pre{background:#eef1f6;border:1px solid #d5dbe6;padding:10px 12px;border-radius:6px;overflow-x:auto}
+pre code{background:none;padding:0}
+table{border-collapse:collapse;width:100%;font-size:10pt}
+th,td{border:1px solid #999;padding:6px 8px;text-align:left;vertical-align:top}
+th{background:#eaf0fa}
+blockquote{border-left:4px solid #d9b441;background:#fdf8ec;margin:0;padding:6px 12px;font-style:italic}
+li{margin:4px 0}
+</style></head><body><h1>The RFM Automation Project — Explained for a Learner</h1>
+<p><em>A guided tour of a real Playwright + pytest test-automation suite, from
+"what is automation testing" to "how this suite survives 1.15 million rows."</em></p>
+<hr />
+<h2>1. The big picture: what problem does this solve?</h2>
+<p>There is a web app (RFID Master Generator) with <strong>16 modules</strong> — a Generator,
+8 list pages, Users, Operators, Import, etc. Before the suite, humans clicked
+through <strong>135 test cases</strong> by hand every time the app changed. Now a script
+does it in about 6 minutes headless.</p>
+<p>Every automation suite is just this loop:</p>
+<blockquote>
+<p><strong>Arrange</strong> (get the app into a known state) → <strong>Act</strong> (do what a user would
+do) → <strong>Assert</strong> (check the result is right)</p>
+</blockquote>
+<p>The craft is entirely in two places: <strong>how you organize 135 of those checks so
+they do not rot</strong>, and <strong>how you make the browser-waiting reliable</strong>. This
+project has good answers to both.</p>
+<h2>2. The stack — three tools, three jobs</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Job</th>
+<th>Why this one</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Python</strong></td>
+<td>the language</td>
+<td>readable, everyone in QA can learn it</td>
+</tr>
+<tr>
+<td><strong>Playwright</strong></td>
+<td>drives a real browser (Chromium / Firefox / WebKit)</td>
+<td>auto-waits for elements, modern locators</td>
+</tr>
+<tr>
+<td><strong>pytest</strong></td>
+<td>runs tests, reports results</td>
+<td>fixtures, markers, one command to run everything</td>
+</tr>
+</tbody>
+</table>
+<h2>3. The folder tour — each folder is one idea</h2>
+<pre><code>RFM_Python_Automation/
+├── config/settings.py   &lt;- IDEA: all knobs in one place (URLs, timeouts, credentials)
+├── pages/               &lt;- IDEA: Page Object Model — one file per app module
+├── tests/               &lt;- IDEA: one test file per module, named after it
+├── utils/               &lt;- IDEA: shared helpers + reporting bridge
+├── scripts/             &lt;- IDEA: probe scripts — DOM &quot;microscopes&quot; for maintenance
+├── fixtures/            &lt;- IDEA: test data files (spreadsheets for import tests)
+└── artifacts/           &lt;- IDEA: evidence — screenshots, probe outputs
+</code></pre>
+<p>If you can explain why each folder exists, you already understand automation
+architecture.</p>
+<h2>4. The Page Object Model — the single most important pattern</h2>
+<p><strong>The rule:</strong> tests describe <em>what the user does</em>; page objects describe
+<em>where things live on the screen</em>.</p>
+<p>Look at <code>pages/login_page.py</code> — the simplest one:</p>
+<pre><code class="language-python">class LoginPage(BasePage):
+    path = settings.LOGIN_PATH
+    heading = &quot;Welcome Back&quot;
+
+    # locators (verified 2026-10-09 against the live app)
+    EMAIL = &quot;#rfid-login-username, input[name=username], input[type=text]&quot;
+    PASSWORD = &quot;#rfid-login-password, input[name=password], input[type=password]&quot;
+    SUBMIT = &quot;button.rfid-login-submit, button[type=submit]&quot;
+
+    def login(self, email=None, password=None) -&gt; &quot;LoginPage&quot;:
+        self.open()
+        self.email_box().fill(email or settings.LOGIN_EMAIL)
+        self.password_box().fill(password or settings.LOGIN_PASSWORD)
+        self.submit().click()
+        self.page.wait_for_load_state(&quot;domcontentloaded&quot;)
+        expect(self.page.get_by_text(&quot;Encoding Inputs&quot;).first).to_be_visible()
+        return self
+</code></pre>
+<p>Three things to notice as a learner:</p>
+<ol>
+<li><strong>Selectors live at the top as constants.</strong> When the app's HTML changes (and
+   it <em>will</em> — the project README records the app being rebuilt between Oct 9
+   and Oct 15), you edit <strong>one line at the top of one file</strong>. No test changes.</li>
+<li><strong>The method returns <code>self</code></strong> — so callers can chain:
+   <code>LoginPage(page).login()</code> reads like a sentence.</li>
+<li><strong><code>login()</code> ends with an assertion that you actually landed on the right
+   page</strong> ("Encoding Inputs" is the Generator's heading). Page-object methods
+   verify their own outcome — failures point at the <em>step</em> that broke, not
+   mysteriously at the test 50 lines later.</li>
+</ol>
+<p>And <code>base_page.py</code> is the shared parent — every module page inherits
+navigation, <code>fill_field()</code>, <code>find()</code>, screenshot support. That is
+<strong>inheritance used for real DRY</strong>, not homework.</p>
+<p><strong>Why "one file per module"?</strong> 16 modules x their own page object = when the
+Style Number List changes, you touch <code>style_number_list_page.py</code> and nothing
+else. Scales to a team.</p>
+<h2>5. Fixtures (conftest.py) — setup you never repeat</h2>
+<p>A <strong>fixture</strong> is pytest's word for "code that runs before a test and hands the
+test what it needs." The suite has three:</p>
+<pre><code class="language-python">@pytest.fixture
+def guest_page(page: Page) -&gt; Page:                       # fresh, NOT logged in
+    page.goto(settings.BASE_URL + settings.LOGIN_PATH, ...)
+    return page
+
+@pytest.fixture(scope=&quot;module&quot;)
+def auth_page(browser) -&gt; Page:                           # logged in ONCE per file
+    context = browser.new_context(viewport=..., locale=..., timezone_id=...)
+    page = context.new_page()
+    LoginPage(page).login()                               # &lt;- one login serves 8 tests
+    yield page
+    context.close()
+</code></pre>
+<p><strong>The <code>scope</code> concept is the lesson here:</strong></p>
+<ul>
+<li>Default scope = <strong>function</strong>: fresh browser page per test (isolation, slow).</li>
+<li><code>scope="module"</code> = reuse across every test in one file. That is why the smoke
+  run logs in 16 times (once per file) instead of 100+ times.</li>
+<li><code>scope="session"</code> = once for the entire run (fastest, least isolated).</li>
+</ul>
+<p>Choosing a scope is a <strong>speed-vs-isolation trade-off</strong> — a real interview
+question. This project chose module scope: login once per file, but each file
+starts clean.</p>
+<p>Also notice the hooks at the top of the same file:</p>
+<pre><code class="language-python">@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    report = outcome.get_result()
+    recorder.record(item, report)
+</code></pre>
+<p>That is pytest's event system — "after every test, tell the RunRecorder what
+happened." This is how the live HTML dashboard gets its data. Hooks let you
+observe everything pytest does.</p>
+<h2>6. Anatomy of a real test</h2>
+<p>From <code>tests/test_02_generator.py</code>:</p>
+<pre><code class="language-python">@pytest.fixture
+def gen(auth_page) -&gt; GeneratorPage:          # local fixture: builds on auth_page
+    page = GeneratorPage(auth_page)
+    page.open()
+    return page
+
+@pytest.mark.smoke
+@pytest.mark.happy
+def test_gen_001_generate_single_item_code(gen):
+    &quot;&quot;&quot;TC-GEN-001: one item code -&gt; Generation Summary opens with full details.&quot;&quot;&quot;
+    gen.select_tab(gen.TAB_ITEM_CODE) \
+       .enter_item_codes(data.ITEM_CODE_ADDED) \
+       .set_starting_serial(data.SERIAL_MIN) \
+       .set_quantity(data.QTY_DOCUMENTED) \
+       .generate_series()
+
+    assert gen.summary_visible(), &quot;Generation Summary did not open&quot;
+    text = gen.summary_text()
+    for field in (&quot;Style Number&quot;, &quot;Style Name&quot;, &quot;Color&quot;, &quot;Mother&quot;,
+                  &quot;Qty&quot;, &quot;Serial Range&quot;, &quot;EPC Range&quot;):
+        assert field.lower() in text.lower(), f&quot;'{field}' missing from summary&quot;
+</code></pre>
+<p>Read it aloud — <strong>it is a specification in code</strong>: "select the Item Code tab,
+enter codes, set serial and quantity, generate; then the summary must show all
+seven fields." Notice:</p>
+<ul>
+<li><strong>Chainable methods</strong> (line-continuations) — the action section reads like a
+  script, not a program.</li>
+<li><strong>Every assertion has a failure message.</strong> When it breaks at 2 AM, the
+  message tells you <em>what</em> was missing, not <code>assert False</code>.</li>
+<li><strong>Data comes from <code>utils/test_data.py</code></strong> (<code>data.QTY_DOCUMENTED</code>), not
+  hardcoded — change test data without touching test code.</li>
+<li><strong>The docstring carries <code>TC-GEN-001</code></strong> — that is the traceability spine:
+  pytest line &lt;-&gt; CSV row &lt;-&gt; HTML dashboard cell.</li>
+<li><strong>Markers</strong> (<code>smoke</code>, <code>happy</code>, <code>boundary</code>) let you run subsets:
+  <code>pytest -m smoke</code>, <code>pytest -m "not slow"</code>.</li>
+</ul>
+<h2>7. Configuration and secrets (settings.py)</h2>
+<p>Every tunable lives in one file, and every value can be overridden by an
+environment variable:</p>
+<pre><code class="language-python">BASE_URL = os.getenv(&quot;RFM_BASE_URL&quot;, &quot;https://dev.master.bwrfm.com&quot;)
+BROWSER  = os.getenv(&quot;RFM_BROWSER&quot;, &quot;chromium&quot;)
+HEADLESS = os.getenv(&quot;RFM_HEADLESS&quot;, &quot;true&quot;).lower() in (&quot;1&quot;, &quot;true&quot;, &quot;yes&quot;)
+</code></pre>
+<p><strong>Lesson:</strong> the same code runs on your machine, in CI, or against staging —
+you change env vars, never the code. It is also why "watch the run" is just a
+flag: headless-vs-headed is a <em>runtime choice</em>, not a code change
+(<code>python -m pytest -m smoke --headed --slowmo=250 -v</code>).</p>
+<h2>8. The hardest skill in automation: synchronization</h2>
+<p>Browsers are asynchronous. DataTables renders a <code>Loading RFID records...</code> row
+first, then fills in. If you assert too early, you get a <strong>flaky test</strong> (fails
+sometimes, for no reason).</p>
+<p>This suite handles sync three ways, in order of preference:</p>
+<ol>
+<li><strong>Playwright auto-waiting</strong> — <code>locator.click()</code> <em>already</em> waits for the
+   element to appear, be visible and be enabled. Modern Playwright does most
+   of your waiting for you.</li>
+<li><strong>Explicit condition waits</strong> — <code>expect(...).to_be_visible()</code> polls until
+   true or times out.</li>
+<li><strong>Custom polling helpers</strong> for the genuinely slow stuff — the star pupil:</li>
+</ol>
+<pre><code class="language-python"># table_search() used to sleep a flat 500 ms. It failed ~30% of the time
+# because DataTables filters 1,150,551 client-side rows in ~4 seconds.
+# Now it POLLs the row count every 250 ms (up to 15 s) until the count changes.
+</code></pre>
+<p><strong>The rule to memorize:</strong> <em>never sleep, always poll.</em> A fixed sleep is either
+too short (flaky) or too slow (wasted time). Polling for the actual condition
+is both fast and reliable. That one fix is a perfect interview story.</p>
+<h2>9. Resilient locators — how to not break when HTML changes</h2>
+<p><code>base_page.py</code>'s <code>find()</code> shows the cascade strategy:</p>
+<pre><code class="language-python">def find(self, *candidates: Locator) -&gt; Locator:
+    &quot;&quot;&quot;Return the first candidate locator that matches at least one node.&quot;&quot;&quot;
+    for loc in candidates:
+        if loc.count() &gt; 0:
+            return loc.first
+</code></pre>
+<p>And <code>login_page.py</code> feeds it fallbacks: exact ID first, then <code>name=</code>, then
+label, then placeholder. The priority order taught by every Playwright guide:</p>
+<blockquote>
+<p><strong>role/name</strong> -&gt; <strong>label</strong> -&gt; <strong>placeholder</strong> -&gt; <strong>CSS id</strong> -&gt;
+<strong>CSS class / XPath</strong> (last resort)</p>
+</blockquote>
+<p>Plus two project-specific refinements worth stealing:</p>
+<ul>
+<li><strong>Verified CSS constants win.</strong> The login fields <em>also</em> carry raw
+  <code>#rfid-login-username</code> — because a "selector pass" against the live DOM
+  proved that ID exists. Fallbacks handle <em>future</em> redesigns; the proven
+  selector handles <em>today</em>.</li>
+<li><strong>Exact-before-substring matching.</strong> <code>header_index("RFID")</code> once matched
+  "MOTHER <strong>RFID</strong>" and silently read the wrong column. The fix: exact match
+  first, substring only as fallback. Specificity beats cleverness.</li>
+</ul>
+<h2>10. The philosophy: skip != fail, and some tests should be red</h2>
+<p>Three policies that separate juniors from pros:</p>
+<ul>
+<li><strong>Skip when data is missing</strong> — a test needing a 5,000-row import fixture
+  <em>skips</em> (shown as <strong>Blocked</strong> in the sheet) rather than failing. A red test
+  should always mean <em>"something is broken,"</em> never <em>"the environment was not
+  ready."</em></li>
+<li><strong>xfail for known defects</strong> — "we know this fails, here is the ticket."</li>
+<li><strong>Intended failures stay red</strong> — <code>TC-OP-008/009</code> reproduce a real
+  <code>primedRef is not defined</code> app bug. The suite <strong>refuses to go green</strong> until
+  the app is fixed. Automation that hides bugs is worse than no automation.</li>
+</ul>
+<h2>11. Reporting and traceability — closing the loop</h2>
+<p>After every test, this hook fires (<code>conftest.py</code> -&gt; <code>RunRecorder</code>):</p>
+<pre><code class="language-python">STATUS_OF_OUTCOME = {&quot;passed&quot;: &quot;Pass&quot;, &quot;failed&quot;: &quot;Fail&quot;, &quot;skipped&quot;: &quot;Blocked&quot;}
+</code></pre>
+<p>...and rewrites <code>RFM_Test_Cases_HTML/results.js</code>. So the HTML sheet — the same
+document the manual test cases live in — <strong>updates its Status column live while
+tests run</strong>. Parametrized tests sharing one TC-ID keep the <em>worst</em> result, so
+one red parameter marks the whole case red.</p>
+<p>The lesson: <strong>a report nobody reads is a report that does not exist.</strong> Meeting
+stakeholders where they already look (the test sheet) is what makes automation
+visible — and funded.</p>
+<h2>12. Maintenance: the part nobody writes tutorials about</h2>
+<p>Apps get rebuilt. This project's answer is the <code>scripts/</code> folder — <strong>probe
+scripts</strong>: tiny throwaway programs that log in, open one page, and dump the
+real DOM to <code>artifacts/probe_*.txt</code>:</p>
+<pre><code class="language-powershell">python scripts\inspect_nav.py    # every sidebar module: URL, headings, columns
+python scripts\verify_flow.py    # generate -&gt; summary -&gt; save, end to end
+</code></pre>
+<p>The workflow: app changed -&gt; run the probe -&gt; read what the DOM <em>actually</em>
+looks like now -&gt; fix the one constant in the one page object -&gt; re-run. And
+the README keeps <strong>evidence tables</strong> ("verified 2026-10-09", "removed
+2026-10-15") so the next person starts from facts, not guesses.</p>
+<p>This is also where AI fits in the workflow — AI drafts the hypothesis and the
+probe; the probe's output decides the fix.</p>
+<h2>13. Follow one click end-to-end (put it all together)</h2>
+<p>Trace <code>test_gen_001</code>:</p>
+<pre><code>pytest runs test_gen_001(gen)
+  |- gen fixture: auth_page (logged-in page) + GeneratorPage wrapper
+       |- gen.select_tab(&quot;Item Code&quot;)
+            |- generator_page.py: page.locator(&quot;.rfid-gen-mode-btn&quot;, has_text=...).click()
+                 |- base_page.py: set_default_timeout(15000) already applied
+                      |- Playwright: waits for element, scrolls, clicks, auto-recovers
+       |- ... fill serial, quantity, click Generate Series
+       |- gen.summary_visible() -&gt; #rfid-save-confirm-modal visible?
+pytest asserts 7 summary fields -&gt; RunRecorder writes Pass -&gt; results.js updates
+</code></pre>
+<p><strong>Test = the what. Page object = the where. Base page = the how. Playwright =
+the hands. Settings = the knobs. RunRecorder = the scoreboard.</strong></p>
+<h2>14. Practice exercises (in difficulty order)</h2>
+<ol>
+<li><strong>Run subsets</strong> — <code>pytest -m smoke -v</code>, then <code>pytest -m negative -v</code>.
+   Predict what runs before you press Enter.</li>
+<li><strong>Break a locator on purpose</strong> — change <code>EMAIL</code> in <code>login_page.py</code> to
+   <code>#wrong-id</code>, run <code>test_auth_001</code>, read the failure + screenshot in
+   <code>artifacts/screenshots/</code>, then fix it.</li>
+<li><strong>Write one new test</strong> — add <code>test_auth_006</code> (e.g. password field masks
+   input) in <code>test_01_authentication.py</code> using only existing page-object
+   methods.</li>
+<li><strong>Write one new page-object method</strong> — add <code>clear_form()</code> to
+   <code>generator_page.py</code>, then use it in a test.</li>
+<li><strong>The capstone</strong> — write a probe script modeled on <code>scripts/inspect_app.py</code>
+   that logs in and dumps the Generator's table headers, then use its output
+   to add a column assertion to <code>test_gen_002</code>.</li>
+</ol>
+<hr />
+<h2>Quick command reference</h2>
+<table>
+<thead>
+<tr>
+<th>What you want</th>
+<th>Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Run everything</td>
+<td><code>python -m pytest -v</code></td>
+</tr>
+<tr>
+<td>Watch it run (headed, slowed)</td>
+<td><code>python -m pytest -m smoke --headed --slowmo=250 -v</code></td>
+</tr>
+<tr>
+<td>One module / one test</td>
+<td><code>python -m pytest tests/test_02_generator.py -v</code> / <code>-k test_gen_001</code></td>
+</tr>
+<tr>
+<td>By marker</td>
+<td><code>python -m pytest -m smoke</code> · <code>-m negative</code> · <code>-m boundary</code></td>
+</tr>
+<tr>
+<td>Re-verify selectors</td>
+<td><code>python scripts\inspect_app.py</code> · <code>scripts\verify_flow.py</code></td>
+</tr>
+</tbody>
+</table>
+<p><em>Source: RFM Automation portfolio walkthrough, October 2026.</em></p></body></html>

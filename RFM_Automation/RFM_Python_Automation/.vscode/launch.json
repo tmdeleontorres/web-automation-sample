@@ -1,0 +1,70 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "▶ Run all tests (headless)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["-v"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": false,
+      "presentation": { "group": "1-run", "order": 1 }
+    },
+    {
+      "name": "▶ Run current file",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": false,
+      "presentation": { "group": "1-run", "order": 2 }
+    },
+    {
+      "name": "▶ Run smoke tests",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["-m", "smoke", "-v"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": false,
+      "presentation": { "group": "1-run", "order": 3 }
+    },
+    {
+      "name": "🐞 Debug all tests (headed)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["-v", "--headed", "--slowmo=250"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": false,
+      "env": { "RFM_HEADLESS": "false" },
+      "presentation": { "group": "2-debug", "order": 1 }
+    },
+    {
+      "name": "🐞 Debug current test (breakpoint)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["${file}", "-v", "-k", "${selectedText}"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": false,
+      "presentation": { "group": "2-debug", "order": 2 }
+    },
+    {
+      "name": "🐞 Debug current file (headed)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": false,
+      "presentation": { "group": "2-debug", "order": 3 }
+    }
+  ]
+}
