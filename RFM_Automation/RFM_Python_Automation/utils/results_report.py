@@ -13,6 +13,7 @@ Status mapping
     pytest passed  -> Pass
     pytest failed  -> Fail
     pytest skipped -> Blocked        (e.g. missing data / fixture)
+    Actual Result captures the observed test outcome or failure/skip reason.
 
 Parametrised tests that share one TC id keep the **worst** result
 (Fail > Blocked > Pass), so a single red parameter marks the case red.
@@ -74,11 +75,12 @@ class RunRecorder:
 
         at, duration = _now(), round(getattr(report, "duration", 0.0), 2)
         for tc in tc_ids:
-            record = {"status": status, "at": at, "duration": duration,
-                      "test": item.nodeid}
+            record = {"status": status, "actualResult": _actual_result(report, status),
+                      "at": at, "duration": duration, "test": item.nodeid}
             previous = self.session.get(tc)
             if previous and SEVERITY[previous["status"]] > SEVERITY[status]:
                 record["status"] = previous["status"]   # keep the worst result
+                record["actualResult"] = previous.get("actualResult", record["actualResult"])
             self.session[tc] = record
 
         self.flush()                                # <-- live update per test
@@ -132,6 +134,26 @@ class RunRecorder:
                 pass
         return {}, {}
 
+
+def _actual_result(report, status: str) -> str:
+    """Return concise observed outcome text for the HTML Actual Result field."""
+    if status == "Pass":
+        return "Passed: all test assertions completed successfully."
+    if status == "Blocked":
+        detail = str(getattr(report, "longrepr", "") or "").strip()
+        if not detail:
+            detail = "Test was skipped or blocked before execution."
+        return "Blocked: " + " ".join(detail.split())[:1000]
+    longrepr = getattr(report, "longrepr", None)
+    crash = getattr(longrepr, "reprcrash", None)
+    detail = getattr(crash, "message", "")
+    if not detail:
+        lines = [line.strip()[2:].strip() for line in getattr(report, "longreprtext", "").splitlines()
+                 if line.lstrip().startswith("E ")]
+        detail = " | ".join(lines[-2:])
+    if not detail:
+        detail = "Test failed; see the pytest report for details."
+    return "Failed: " + " ".join(detail.split())[:1000]
 
 def _now() -> str:
     return datetime.now().astimezone().isoformat(timespec="seconds")

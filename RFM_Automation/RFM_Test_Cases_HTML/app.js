@@ -4,12 +4,12 @@
 
   var STORAGE_KEY = "rfm_test_cases_v1";
   var COLUMNS = ["TC ID","Module","Test Type","Priority","Title","Preconditions",
-                 "Test Steps","Expected Result","Status","Remarks"];
+                 "Test Steps","Expected Result","Status","Actual Result","Remarks"];
   var STATUSES = ["Not Executed","Pass","Fail","Blocked","In Review"];
   var KEYMAP = {
     id:["TC ID"], tc:["TC ID"], module:["Module"], mod:["Module"],
     type:["Test Type"], test:["Test Type"], priority:["Priority"], pri:["Priority"],
-    status:["Status"], title:["Title"], pre:["Preconditions"], precondition:["Preconditions"],
+    status:["Status"], actual:["Actual Result"], result:["Actual Result"], title:["Title"], pre:["Preconditions"], precondition:["Preconditions"],
     steps:["Test Steps"], step:["Test Steps"], expected:["Expected Result"], exp:["Expected Result"],
     remarks:["Remarks"], note:["Remarks"]
   };
@@ -25,7 +25,7 @@
       var raw = localStorage.getItem(STORAGE_KEY);
       var list = raw ? JSON.parse(raw) : null;
       if (Array.isArray(list)) {
-        list.forEach(function (c) { c.Status = "Not Executed"; delete c._auto; });
+        list.forEach(function (c) { c.Status = "Not Executed"; c["Actual Result"] = ""; delete c._auto; });
         localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
       }
     } catch (e) { /* corrupted storage - fall through to defaults */ }
@@ -53,12 +53,16 @@
     var defs = window.DEFAULT_TEST_CASES || [];
     if (!defs.length) return stored;
     var have = {};
-    stored.forEach(function (c) { have[String(c["TC ID"]).toLowerCase()] = true; });
+    var migrated = false;
+    stored.forEach(function (c) {
+      have[String(c["TC ID"]).toLowerCase()] = true;
+      if (c["Actual Result"] == null) { c["Actual Result"] = ""; migrated = true; }
+    });
     var missing = defs.filter(function (c) {
       return !have[String(c["TC ID"]).toLowerCase()];
     });
-    if (missing.length) {
-      stored = stored.concat(clone(missing));
+    if (missing.length) stored = stored.concat(clone(missing));
+    if (missing.length || migrated) {
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(stored)); }
       catch (e) { /* storage quota - keep them in memory only */ }
     }
@@ -99,6 +103,9 @@
       if (!target) return;
       target._auto = rec;
       if (target.Status !== rec.status) { target.Status = rec.status; changed = true; }
+      if (Object.prototype.hasOwnProperty.call(rec, "actualResult") && target["Actual Result"] !== rec.actualResult) {
+        target["Actual Result"] = rec.actualResult; changed = true;
+      }
     });
     var token = JSON.stringify(R.meta || {});
     if (token !== lastResultToken) { lastResultToken = token; changed = true; }
@@ -215,6 +222,7 @@
           (c._auto ? " has-auto" : "") + '" data-cycle="' + i + '" title="' +
           esc("Click to cycle status" + autoInfo(c)) + '">' + esc(c.Status) +
           (c._auto ? '<i class="auto-dot" aria-hidden="true"></i>' : "") + "</span></td>" +
+        '<td class="c-actual-result">' + esc(c["Actual Result"]) + "</td>" +
         "<td>" + esc(c.Remarks) + "</td>" +
         '<td class="c-actions">' +
           '<button class="btn btn-sm" data-edit="' + i + '">Edit</button> ' +
@@ -406,11 +414,11 @@
       var rows = parseCSV(String(reader.result));
       if (rows.length < 2) { toast("CSV has no data rows"); return; }
       var head = rows[0].map(function (h) { return h.trim(); });
-      var missing = COLUMNS.filter(function (c) { return head.indexOf(c) === -1; });
+      var missing = COLUMNS.filter(function (c) { return c !== "Actual Result" && head.indexOf(c) === -1; });
       if (missing.length) { toast("Missing columns: " + missing.join(", ")); return; }
       var list = rows.slice(1).map(function (r) {
         var o = {};
-        COLUMNS.forEach(function (c) { o[c] = (r[head.indexOf(c)] || "").trim(); });
+        COLUMNS.forEach(function (c) { var col = head.indexOf(c); o[c] = col < 0 ? "" : (r[col] || "").trim(); });
         if (!o.Status) o.Status = "Not Executed";
         return o;
       });

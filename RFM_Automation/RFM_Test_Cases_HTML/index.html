@@ -51,6 +51,7 @@
         <th data-sort="Test Steps">Test Steps</th>
         <th data-sort="Expected Result">Expected Result</th>
         <th data-sort="Status" class="col-status">Status</th>
+        <th data-sort="Actual Result" class="col-actual-result">Actual Result</th>
         <th data-sort="Remarks">Remarks</th>
         <th class="col-actions">Actions</th>
       </tr>
@@ -95,6 +96,7 @@
             <option>Blocked</option><option>In Review</option>
           </select>
         </label>
+        <label class="span2">Actual Result <textarea name="Actual Result" rows="4" placeholder="Recorded automatically after a pytest run; you can edit it here."></textarea></label>
         <label class="span2">Remarks <textarea name="Remarks" rows="2"></textarea></label>
       </div>
       <div class="modal-foot">

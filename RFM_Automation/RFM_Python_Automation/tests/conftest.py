@@ -6,8 +6,8 @@
 
 The `pytest_runtest_makereport` hook feeds every result into
 `utils.results_report.RunRecorder`, which rewrites
-`RFM_Test_Cases_HTML/results.js` after **each** test so the Status column of
-the HTML test case updates live while the run is in progress.
+`RFM_Test_Cases_HTML/results.js` after **each** test so the Status and Actual Result columns
+of the HTML test case update live while the run is in progress.
 """
 
 from __future__ import annotations
