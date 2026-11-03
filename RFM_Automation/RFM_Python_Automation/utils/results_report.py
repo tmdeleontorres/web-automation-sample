@@ -136,7 +136,7 @@ class RunRecorder:
 
 
 def _actual_result(report, status: str) -> str:
-    """Return concise observed outcome text for the HTML Actual Result field."""
+    """Describe the observed pytest outcome, retaining concrete failure evidence."""
     if status == "Pass":
         return "Passed: all test assertions completed successfully."
     if status == "Blocked":
@@ -144,16 +144,25 @@ def _actual_result(report, status: str) -> str:
         if not detail:
             detail = "Test was skipped or blocked before execution."
         return "Blocked: " + " ".join(detail.split())[:1000]
-    longrepr = getattr(report, "longrepr", None)
-    crash = getattr(longrepr, "reprcrash", None)
-    detail = getattr(crash, "message", "")
+
+    # Pytest's assertion-introspection lines usually include both the failed
+    # expression and the actual/expected values. Prefer those over a bare
+    # exception class such as "AssertionError" from reprcrash.message.
+    longreprtext = getattr(report, "longreprtext", "") or ""
+    evidence = [line.lstrip()[2:].strip() for line in longreprtext.splitlines()
+                if line.lstrip().startswith("E ")]
+    detail = " | ".join(evidence[-4:])
+
     if not detail:
-        lines = [line.strip()[2:].strip() for line in getattr(report, "longreprtext", "").splitlines()
-                 if line.lstrip().startswith("E ")]
-        detail = " | ".join(lines[-2:])
+        longrepr = getattr(report, "longrepr", None)
+        crash = getattr(longrepr, "reprcrash", None)
+        detail = str(getattr(crash, "message", "") or "").strip()
     if not detail:
         detail = "Test failed; see the pytest report for details."
-    return "Failed: " + " ".join(detail.split())[:1000]
+
+    phase = {"setup": "setup", "call": "test body", "teardown": "teardown"}.get(
+        getattr(report, "when", ""), "execution")
+    return f"Failed during {phase}: {' '.join(detail.split())}"[:1200]
 
 def _now() -> str:
     return datetime.now().astimezone().isoformat(timespec="seconds")
